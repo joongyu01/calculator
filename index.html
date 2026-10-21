@@ -162,20 +162,17 @@ function savedBalance(hire, Y){
 function chart(hire, start){
   const data=[];
   for (let y=start; y<start+10; y++) data.push({y, a:leaveForYear(hire,y).total, b:savedBalance(hire,y)});
-  const W=680, H=260, L=8, B=28, T=22, bw=(W-L*2)/data.length;
-  const max=Math.max(1, ...data.map(d=>d.a+d.b));
-  const h=v=>v/max*(H-B-T);
-  const bars=data.map((d,i)=>{
-    const x=L+i*bw+bw*0.18, w=bw*0.64, ya=H-B-h(d.a), yb=ya-h(d.b);
-    return `<g><title>${d.y}년: 연차 ${d.a}일 + 저축 ${d.b}일 = ${round1(d.a+d.b)}일</title>
-      <rect x="${x}" y="${ya}" width="${w}" height="${h(d.a)}" fill="var(--accent)" rx="2"/>
-      <rect x="${x}" y="${yb}" width="${w}" height="${h(d.b)}" fill="var(--save)" rx="2"/>
-      <text x="${x+w/2}" y="${yb-6}" text-anchor="middle" font-size="13" font-weight="700" fill="var(--text)">${round1(d.a+d.b)}</text>
-      <text x="${x+w/2}" y="${H-8}" text-anchor="middle" font-size="12" fill="var(--muted)">${d.y}</text></g>`;
-  }).join('');
-  const peak=data.reduce((p,d)=>d.a+d.b>p.a+p.b?d:p);
-  return {peak, rows:data, svg:`<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${start}~${start+9}년 연도별 연차와 저축 연차">
-    <line x1="0" x2="${W}" y1="${H-B}" y2="${H-B}" stroke="var(--line)"/>${bars}</svg>`};
+  const W=680, H=280, L=30, R=30, B=28, T=26, step=(W-L-R)/(data.length-1);
+  const max=Math.max(1, ...data.map(d=>Math.max(d.a,d.b)));
+  const X=i=>L+i*step, Yv=v=>H-B-v/max*(H-B-T);
+  // 두 선 중 위에 있는 점은 숫자를 위에, 아래 점은 아래에 달아 겹치지 않게
+  const series=(k,color,other)=>`<polyline fill="none" stroke="${color}" stroke-width="2.5" points="${data.map((d,i)=>X(i)+','+Yv(d[k])).join(' ')}"/>`+
+    data.map((d,i)=>{ const up=d[k]>=d[other]; return `<circle cx="${X(i)}" cy="${Yv(d[k])}" r="4.5" fill="${color}"><title>${d.y}년 ${k==='a'?'신규 부여':'저축 가능'} ${d[k]}일</title></circle>
+      <text x="${X(i)}" y="${Yv(d[k])+(up?-10:20)}" text-anchor="middle" font-size="12" font-weight="700" fill="${color}">${d[k]}</text>`; }).join('');
+  const years=data.map((d,i)=>`<text x="${X(i)}" y="${H-8}" text-anchor="middle" font-size="12" fill="var(--muted)">${d.y}</text>`).join('');
+  const peak=data.reduce((p,d)=>d.b>p.b?d:p);
+  return {peak, rows:data, svg:`<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${start}~${start+9}년 신규 부여 연차와 저축 가능 일수">
+    <line x1="${L-20}" x2="${W-R+20}" y1="${H-B}" y2="${H-B}" stroke="var(--line)"/>${years}${series('a','var(--accent)','b')}${series('b','var(--save)','a')}</svg>`};
 }
 
 function advanceLimit(y){ return y<1?5 : y<2?6 : y<3?7 : y<4?8 : 10; }
@@ -217,8 +214,8 @@ function render(){
   <section class="card">
     <h2>향후 10년 연차 (${c.rows[0].y}~${c.rows[9].y})</h2>
     ${c.svg}
-    <div class="legend"><span><i style="background:var(--accent)"></i>그 해 생기는 연차</span><span><i style="background:var(--save)"></i>모아 둔 저축 연차 (1월 1일 기준)</span></div>
-    <p class="muted" style="margin:10px 0 0">저축을 최대로 쓰면 <b>${c.peak.y}년에 최대 ${round1(c.peak.a+c.peak.b)}일</b>까지 쓸 수 있어요 (그 해 연차 ${c.peak.a}일 + 저축 ${c.peak.b}일). 입사 때부터 매년 발생분의 20%를 저축하고 저축분은 쓰지 않았으며, 저축한 지 10년이 지난 건 사라진다고 가정했어요.</p>
+    <div class="legend"><span><i style="background:var(--accent)"></i>신규 부여 연차 (그 해 1월 1일 등)</span><span><i style="background:var(--save)"></i>저축 가능 일수 (1월 1일에 모아 둔 최대치)</span></div>
+    <p class="muted" style="margin:10px 0 0">저축 연차는 최대 <b>${c.peak.b}일 (${c.peak.y}년)</b>까지 모을 수 있어요. 입사 때부터 매년 발생분의 20%를 저축하고 저축분은 쓰지 않았으며, 저축한 지 10년이 지난 건 사라진다고 가정했어요.</p>
   </section>
   <section class="card">
     <h2>같이 보면 좋은 것</h2>
