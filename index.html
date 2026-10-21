@@ -8,17 +8,17 @@
 <style>
 :root{
   --bg:#f6f7f9; --card:#ffffff; --text:#1b1f24; --muted:#5f6b7a; --line:#e3e7ec;
-  --accent:#1f6feb; --accent-soft:#e8f0fe; --good:#1a7f37; --warn:#9a6700;
+  --accent:#1f6feb; --accent-soft:#e8f0fe; --save:#e3a008; --good:#1a7f37; --warn:#9a6700;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     --bg:#0f1216; --card:#171b21; --text:#e6e9ed; --muted:#9aa5b1; --line:#2a313a;
-    --accent:#4c8dff; --accent-soft:#1b2a44; --good:#3fb950; --warn:#d29922;
+    --accent:#4c8dff; --accent-soft:#1b2a44; --save:#d29922; --good:#3fb950; --warn:#d29922;
   }
 }
 :root[data-theme="dark"]{
   --bg:#0f1216; --card:#171b21; --text:#e6e9ed; --muted:#9aa5b1; --line:#2a313a;
-  --accent:#4c8dff; --accent-soft:#1b2a44; --good:#3fb950; --warn:#d29922;
+  --accent:#4c8dff; --accent-soft:#1b2a44; --save:#d29922; --good:#3fb950; --warn:#d29922;
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--text);
@@ -53,6 +53,8 @@ h2{font-size:1.05rem;margin:0 0 10px}
 details summary{cursor:pointer;font-weight:600}
 .note{font-size:.82rem;color:var(--muted);margin-top:16px}
 .empty{color:var(--muted)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.85rem;color:var(--muted);margin-top:6px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
 </style>
 </head>
 <body>
@@ -148,6 +150,34 @@ function leaveForYear(hire, Y){
   return {total:round1(total), items, n: (Y===Y0+1 && !janStart) ? 0 : Math.max(n,0)};
 }
 
+// 제33조의2: 그 해 발생분의 20%까지 저축, 저축한 다음 해부터 10년 안에 사용
+function saveOf(total){ return Math.floor(total*0.2*10)/10; }
+// Y년 1월 1일에 남아 있는 저축 연차 (입사 때부터 매년 최대로 저축하고 저축분은 안 썼다고 가정)
+function savedBalance(hire, Y){
+  let s=0;
+  for (let y=Math.max(hire.getFullYear(), Y-10); y<Y; y++) s+=saveOf(leaveForYear(hire,y).total);
+  return round1(s);
+}
+
+function chart(hire, start){
+  const data=[];
+  for (let y=start; y<start+10; y++) data.push({y, a:leaveForYear(hire,y).total, b:savedBalance(hire,y)});
+  const W=680, H=260, L=8, B=28, T=22, bw=(W-L*2)/data.length;
+  const max=Math.max(1, ...data.map(d=>d.a+d.b));
+  const h=v=>v/max*(H-B-T);
+  const bars=data.map((d,i)=>{
+    const x=L+i*bw+bw*0.18, w=bw*0.64, ya=H-B-h(d.a), yb=ya-h(d.b);
+    return `<g><title>${d.y}년: 연차 ${d.a}일 + 저축 ${d.b}일 = ${round1(d.a+d.b)}일</title>
+      <rect x="${x}" y="${ya}" width="${w}" height="${h(d.a)}" fill="var(--accent)" rx="2"/>
+      <rect x="${x}" y="${yb}" width="${w}" height="${h(d.b)}" fill="var(--save)" rx="2"/>
+      <text x="${x+w/2}" y="${yb-6}" text-anchor="middle" font-size="13" font-weight="700" fill="var(--text)">${round1(d.a+d.b)}</text>
+      <text x="${x+w/2}" y="${H-8}" text-anchor="middle" font-size="12" fill="var(--muted)">${d.y}</text></g>`;
+  }).join('');
+  const peak=data.reduce((p,d)=>d.a+d.b>p.a+p.b?d:p);
+  return {peak, rows:data, svg:`<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${start}~${start+9}년 연도별 연차와 저축 연차">
+    <line x1="0" x2="${W}" y1="${H-B}" y2="${H-B}" stroke="var(--line)"/>${bars}</svg>`};
+}
+
 function advanceLimit(y){ return y<1?5 : y<2?6 : y<3?7 : y<4?8 : 10; }
 
 function render(){
@@ -161,7 +191,7 @@ function render(){
   const jan1=new Date(Y,0,1);
   const refDate = jan1 < hire ? hire : jan1;
   const served=yearsDone(hire, refDate);
-  const save=Math.floor(r.total*0.2*10)/10;
+  const save=saveOf(r.total);
 
   const now=new Date(); now.setHours(0,0,0,0);
   const servedNow=yearsDone(hire, now);
@@ -170,6 +200,8 @@ function render(){
   else if (servedNow>=10){ longVal='5일'; longDesc='재직 10~20년 중 1회'; }
   else { longVal='아직'; longDesc=`${fmt(addMonths(hire,120))}부터 5일`; }
 
+  const thisYear=new Date().getFullYear();
+  const c=chart(hire, Math.max(thisYear, Y0));
   const rows=[];
   for (let y=Y0; y<=Y0+27; y++){
     const t=leaveForYear(hire,y);
@@ -181,6 +213,12 @@ function render(){
     <div class="muted">${Y}년에 생기는 연차</div>
     <div class="big"><span class="n">${r.total}</span><span class="u">일</span></div>
     <ul class="detail">${r.items.map(i=>`<li>${i.label}: <b>${i.days}일</b></li>`).join('') || '<li>발생분 없음</li>'}</ul>
+  </section>
+  <section class="card">
+    <h2>향후 10년 연차 (${c.rows[0].y}~${c.rows[9].y})</h2>
+    ${c.svg}
+    <div class="legend"><span><i style="background:var(--accent)"></i>그 해 생기는 연차</span><span><i style="background:var(--save)"></i>모아 둔 저축 연차 (1월 1일 기준)</span></div>
+    <p class="muted" style="margin:10px 0 0">저축을 최대로 쓰면 <b>${c.peak.y}년에 최대 ${round1(c.peak.a+c.peak.b)}일</b>까지 쓸 수 있어요 (그 해 연차 ${c.peak.a}일 + 저축 ${c.peak.b}일). 입사 때부터 매년 발생분의 20%를 저축하고 저축분은 쓰지 않았으며, 저축한 지 10년이 지난 건 사라진다고 가정했어요.</p>
   </section>
   <section class="card">
     <h2>같이 보면 좋은 것</h2>
@@ -200,6 +238,7 @@ function render(){
 }
 
 yearEl.value=new Date().getFullYear();
+hireEl.value='2020-06-15';
 try{ const s=localStorage.getItem('hire'); if(s) hireEl.value=s; }catch(e){}
 hireEl.addEventListener('input',()=>{ try{localStorage.setItem('hire',hireEl.value);}catch(e){} render(); });
 yearEl.addEventListener('input',render);
