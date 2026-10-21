@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>연차 계산기</title>
+<meta name="description" content="한국석유관리원 취업규칙(제18차개정 2025.12.29) 기준, 입사일만 넣으면 만근 시 연차가 몇 개 생기는지 계산합니다.">
+<style>
+:root{
+  --bg:#f6f7f9; --card:#ffffff; --text:#1b1f24; --muted:#5f6b7a; --line:#e3e7ec;
+  --accent:#1f6feb; --accent-soft:#e8f0fe; --good:#1a7f37; --warn:#9a6700;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1216; --card:#171b21; --text:#e6e9ed; --muted:#9aa5b1; --line:#2a313a;
+    --accent:#4c8dff; --accent-soft:#1b2a44; --good:#3fb950; --warn:#d29922;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1216; --card:#171b21; --text:#e6e9ed; --muted:#9aa5b1; --line:#2a313a;
+  --accent:#4c8dff; --accent-soft:#1b2a44; --good:#3fb950; --warn:#d29922;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
+  line-height:1.55}
+main{max-width:720px;margin:0 auto;padding:24px 16px 48px}
+h1{font-size:1.5rem;margin:0 0 4px}
+.sub{color:var(--muted);margin:0 0 20px;font-size:.92rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:14px}
+label{display:block;font-weight:600;margin-bottom:6px}
+.row{display:flex;gap:12px;flex-wrap:wrap}
+.row>div{flex:1 1 200px}
+input{width:100%;font-size:1.05rem;padding:10px 12px;border:1px solid var(--line);border-radius:10px;
+  background:var(--bg);color:var(--text)}
+.big{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.big .n{font-size:3rem;font-weight:800;color:var(--accent);line-height:1}
+.big .u{font-size:1.2rem;font-weight:700}
+.muted{color:var(--muted);font-size:.9rem}
+ul.detail{margin:10px 0 0;padding-left:18px}
+ul.detail li{margin:2px 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:4px}
+.stat{border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.stat b{display:block;font-size:1.25rem}
+.stat span{color:var(--muted);font-size:.82rem}
+table{width:100%;border-collapse:collapse;font-size:.92rem}
+th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left}
+th{color:var(--muted);font-weight:600}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+tr.me td{background:var(--accent-soft);font-weight:700}
+.scroll{max-height:420px;overflow:auto}
+h2{font-size:1.05rem;margin:0 0 10px}
+details summary{cursor:pointer;font-weight:600}
+.note{font-size:.82rem;color:var(--muted);margin-top:16px}
+.empty{color:var(--muted)}
+</style>
+</head>
+<body>
+<main>
+  <h1>연차 계산기</h1>
+  <p class="sub">한국석유관리원 취업규칙(제18차개정 2025.12.29) 기준 · 매년 만근(8할 이상 출근)했다고 가정</p>
+
+  <section class="card">
+    <div class="row">
+      <div>
+        <label for="hire">입사연월일</label>
+        <input type="date" id="hire" min="1980-01-01" max="2100-12-31">
+      </div>
+      <div>
+        <label for="year">조회 연도</label>
+        <input type="number" id="year" min="1980" max="2100" step="1">
+      </div>
+    </div>
+  </section>
+
+  <div id="out"><section class="card empty">입사연월일을 넣으면 결과가 나와요.</section></div>
+
+  <section class="card">
+    <details>
+      <summary>계산 기준 (취업규칙 조항)</summary>
+      <ul class="detail muted">
+        <li>제32조① 1년간 8할 이상 출근 시 15일, 최초 1년을 초과하는 계속근로 매 2년마다 1일 가산, 최대 25일</li>
+        <li>제32조② 1년 미만 근로자는 1개월 개근 시 1일 (최대 11일)</li>
+        <li>제32조④ 부여기준일 매년 1월 1일, 부여기간 1.1.~12.31. (회계연도 기준)</li>
+        <li>입사 다음 해 1월 1일에는 입사한 해 근무일수에 비례한 연차(15일 × 근무일수 ÷ 그 해 일수)를 줍니다(회계연도 기준 운영 시 고용노동부 행정해석).</li>
+        <li>제32조⑫ 미리 쓰기: 재직 1년 미만 5일, 1~2년 6일, 2~3년 7일, 3~4년 8일, 4년 이상 10일</li>
+        <li>제33조의2 연차 저축: 그 해 발생 연차의 10분의 2까지, 10년 안에 사용</li>
+        <li>제36조⑲ 장기재직휴가: 재직 10~20년 중 5일, 20년 이상 7일 (각 1회)</li>
+      </ul>
+    </details>
+  </section>
+
+  <p class="note">참고용입니다. 휴직·직위해제 기간(제32조⑥)이나 결근은 반영하지 않았고, 비례 연차의 소수점 처리 방식은 근태 담당 기준을 따릅니다. 정확한 일수는 ERP에서 확인하세요.</p>
+</main>
+
+<script>
+const DAY = 86400000;
+const hireEl = document.getElementById('hire');
+const yearEl = document.getElementById('year');
+const out = document.getElementById('out');
+
+function parseDate(s){ const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d); }
+function fmt(d){ return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`; }
+function addMonths(d,n){
+  const y=d.getFullYear(), m=d.getMonth()+n, day=d.getDate();
+  const last=new Date(y,m+1,0).getDate();
+  return new Date(y,m,Math.min(day,last));
+}
+function daysBetween(a,b){ return Math.round((b-a)/DAY); }
+function round1(x){ return Math.round(x*10)/10; }
+function yearsDone(hire, at){ // at 시점까지 채운 만 재직연수
+  let n=at.getFullYear()-hire.getFullYear();
+  if (addMonths(hire,12*n) > at) n--;
+  return Math.max(0,n);
+}
+
+// 기본 연차(제32조①): 근속 n년 → 15 + floor((n-1)/2), 최대 25
+function baseLeave(n){ return n<1 ? 0 : Math.min(25, 15 + Math.floor((n-1)/2)); }
+
+// 조회 연도에 생기는 연차
+function leaveForYear(hire, Y){
+  const Y0=hire.getFullYear();
+  const items=[];
+  let total=0;
+  if (Y<Y0) return {total:0, items, n:null};
+
+  // 1년 미만 월 발생분(제32조②): 입사일로부터 1~11개월 개근 시
+  for (let m=1;m<=11;m++){
+    const d=addMonths(hire,m);
+    if (d.getFullYear()===Y){ items.push({label:`${fmt(d)} 월 개근분`, days:1}); total+=1; }
+  }
+
+  const janStart = hire.getMonth()===0 && hire.getDate()===1;
+  // 1월 1일 기준 근속연수: 1월 1일 입사면 입사한 해를 꽉 채운 1년으로 셈
+  const n = Y - Y0 - (janStart ? 0 : 1);
+
+  if (Y===Y0+1 && !janStart){
+    const yearDays=daysBetween(new Date(Y0,0,1), new Date(Y0+1,0,1));
+    const worked=daysBetween(hire, new Date(Y0+1,0,1));
+    const p=15*worked/yearDays;
+    items.unshift({label:`${Y}.01.01 비례 연차 (15일 × ${worked}/${yearDays}일)`, days:round1(p)});
+    total+=p;
+  } else if (n>=1){
+    const b=baseLeave(n);
+    items.unshift({label:`${Y}.01.01 정기 연차 (근속 ${n}년)`, days:b});
+    total+=b;
+  }
+  return {total:round1(total), items, n: (Y===Y0+1 && !janStart) ? 0 : Math.max(n,0)};
+}
+
+function advanceLimit(y){ return y<1?5 : y<2?6 : y<3?7 : y<4?8 : 10; }
+
+function render(){
+  if (!hireEl.value){ out.innerHTML='<section class="card empty">입사연월일을 넣으면 결과가 나와요.</section>'; return; }
+  const hire=parseDate(hireEl.value);
+  const Y=Number(yearEl.value)||new Date().getFullYear();
+  const Y0=hire.getFullYear();
+  if (Y<Y0){ out.innerHTML=`<section class="card empty">${Y}년은 입사 전이에요.</section>`; return; }
+
+  const r=leaveForYear(hire,Y);
+  const jan1=new Date(Y,0,1);
+  const refDate = jan1 < hire ? hire : jan1;
+  const served=yearsDone(hire, refDate);
+  const save=Math.floor(r.total*0.2*10)/10;
+
+  const now=new Date(); now.setHours(0,0,0,0);
+  const servedNow=yearsDone(hire, now);
+  let longVal, longDesc;
+  if (servedNow>=20){ longVal='7일'; longDesc='재직 20년 이상'; }
+  else if (servedNow>=10){ longVal='5일'; longDesc='재직 10~20년 중 1회'; }
+  else { longVal='아직'; longDesc=`${fmt(addMonths(hire,120))}부터 5일`; }
+
+  const rows=[];
+  for (let y=Y0; y<=Y0+27; y++){
+    const t=leaveForYear(hire,y);
+    rows.push(`<tr class="${y===Y?'me':''}"><td>${y}</td><td>${t.n===null?'-':(y===Y0?'입사년도':(t.n===0?'1년 미만':t.n+'년'))}</td><td class="num">${t.total}일</td></tr>`);
+  }
+
+  out.innerHTML=`
+  <section class="card">
+    <div class="muted">${Y}년에 생기는 연차</div>
+    <div class="big"><span class="n">${r.total}</span><span class="u">일</span></div>
+    <ul class="detail">${r.items.map(i=>`<li>${i.label}: <b>${i.days}일</b></li>`).join('') || '<li>발생분 없음</li>'}</ul>
+  </section>
+  <section class="card">
+    <h2>같이 보면 좋은 것</h2>
+    <div class="grid">
+      <div class="stat"><b>${advanceLimit(served)}일</b><span>미리 쓸 수 있는 한도 (${Y}.1.1 기준 재직 ${served}년, 제32조⑫)</span></div>
+      <div class="stat"><b>${save}일</b><span>${Y}년 말 저축 가능 (발생분의 20%, 제33조의2)</span></div>
+      <div class="stat"><b>${longVal}</b><span>장기재직휴가 · ${longDesc} (제36조⑲)</span></div>
+    </div>
+  </section>
+  <section class="card">
+    <h2>연도별 연차</h2>
+    <div class="scroll"><table>
+      <thead><tr><th>연도</th><th>1월 1일 근속</th><th class="num">연차</th></tr></thead>
+      <tbody>${rows.join('')}</tbody>
+    </table></div>
+  </section>`;
+}
+
+yearEl.value=new Date().getFullYear();
+try{ const s=localStorage.getItem('hire'); if(s) hireEl.value=s; }catch(e){}
+hireEl.addEventListener('input',()=>{ try{localStorage.setItem('hire',hireEl.value);}catch(e){} render(); });
+yearEl.addEventListener('input',render);
+render();
+</script>
+</body>
+</html>
